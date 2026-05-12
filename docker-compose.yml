@@ -1,0 +1,65 @@
+services:
+  backend:
+    build: /backend
+    container_name: clinic_backend
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - .:/app
+
+    env_file:
+      - /backend/.env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: always
+
+  postgres:
+    image: postgres:17
+
+    container_name: clinic_postgres
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clinic_db
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    restart: always
+
+  frontend:
+    build: /frontend
+
+    container_name: clinic_frontend
+
+    ports:
+      - "5173:5173"
+
+    depends_on:
+      - backend
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+
+
+volumes:
+  postgres_data:
