@@ -3,6 +3,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..core.security import hash_password
 from ..storage.postgres import User
 from ..schemas.user import UserCreate
 from ..repositories.user import UserRepository
@@ -26,7 +27,9 @@ class UserService:
         # ВАЖНО: пока без bcrypt (добавим в auth слой)
         user = User(
             email=data.email,
-            password_hash=data.password,  # потом заменишь на hash
+            password_hash=hash_password(
+                data.password
+            ),
             role=data.role
         )
 

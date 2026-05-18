@@ -3,6 +3,7 @@ import datetime
 from fastapi import APIRouter, Depends
 from typing import List, Optional
 
+from ..deps.auth import get_current_doctor
 from ...schemas import (
     AppointmentRead,
     AppointmentCreate,
@@ -40,11 +41,11 @@ async def get_appointments_by_doctor_id(
 
 @router.post("/create_slots", response_model=List[AppointmentSlotsData])
 async def create_slots(
-    doctor_id: int,
     data: datetime.date,
+    doctor=Depends(get_current_doctor),
     service: AppointmentService = Depends(get_appointment_service)
 ):
-    return await service.create_slots(doctor_id, data)
+    return await service.create_slots(doctor.id, data)
 
 @router.get("/", response_model=List[AppointmentRead])
 async def get_all_appointments(

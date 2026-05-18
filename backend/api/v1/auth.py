@@ -1,8 +1,17 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, Cookie
+from fastapi import Response
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...schemas.auth import LoginSchema
-from ...services.user import UserService
-from ..deps import get_user_service
+from backend.schemas.auth import (
+    LoginSchema,
+    RefreshRequest
+)
+
+from backend.services.auth import AuthService
+
+from ..deps import (
+    get_auth_service
+)
 
 router = APIRouter(
     prefix="/auth",
@@ -12,26 +21,58 @@ router = APIRouter(
 
 @router.post("/login")
 async def login(
+    response: Response,
     data: LoginSchema,
-    service: UserService = Depends(
-        get_user_service
+    service: AuthService = Depends(
+        get_auth_service
     )
 ):
-    user = await service.get_user_by_email(
-        data.email
+    tokens = await service.login(data)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=tokens.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7
     )
 
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Пользователь не найден"
-        )
+    return {
+        "access_token": tokens.access_token
+    }
 
-    # временно обычная проверка
-    if user.password_hash != data.password:
-        raise HTTPException(
-            status_code=401,
-            detail="Неверный пароль"
-        )
 
-    return user
+@router.post("/refresh")
+async def refresh(
+    refresh_token: str = Cookie(...),
+    service: AuthService = Depends(
+        get_auth_service
+    )
+):
+    tokens = await service.refresh(
+        refresh_token
+    )
+
+    return {
+        "access_token": tokens.access_token
+    }
+
+
+@router.post("/logout")
+async def logout(
+    response: Response,
+    refresh_token: str = Cookie(...),
+    service: AuthService = Depends(
+        get_auth_service
+    )
+):
+    await service.logout(refresh_token)
+
+    response.delete_cookie(
+        key="refresh_token"
+    )
+
+    return {
+        "message": "Logged out"
+    }

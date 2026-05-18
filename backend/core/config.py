@@ -1,0 +1,16 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    SECRET_KEY: str = "SUPER_SECRET_KEY"
+
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    ALGORITHM: str = "HS256"
+
+    model_config = SettingsConfigDict(env_prefix="JWT_")
+
+
+
+settings = Settings()

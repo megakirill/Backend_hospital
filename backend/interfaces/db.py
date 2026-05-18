@@ -13,3 +13,4 @@ class DB(ABC):
     @abstractmethod
     async def close(self):
         pass
+

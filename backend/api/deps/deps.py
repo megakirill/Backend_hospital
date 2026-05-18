@@ -1,14 +1,17 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 
-from backend.services import AppointmentService, PatientService, DoctorService, MedicalRecordService
+from backend.services import AppointmentService, PatientService, DoctorService, MedicalRecordService, AuthService
 from backend.storage.postgres.connection_factory import Database
-from ..services.user import UserService
-from ..storage.postgres.db import db
+from backend.services.user import UserService
+from backend.storage.postgres.db import db
 
 async def get_db() -> AsyncSession:
     async with db.get_session() as session:
         yield session
+
+def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
+    return AuthService(db)
 
 async def get_appointment_service(
     db: AsyncSession = Depends(get_db)
