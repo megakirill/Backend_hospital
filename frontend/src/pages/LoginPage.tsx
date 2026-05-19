@@ -10,9 +10,13 @@ import AuthCard from "../components/auth/AuthCard";
 import AuthInput from "../components/auth/AuthInput";
 
 import { login } from "../api/auth";
+import {
+    getCurrentUserRole,
+    getHomePathByRole,
+} from "../utils/auth";
+import { getApiErrorMessage } from "../utils/errors";
 
 export default function LoginPage() {
-
     const navigate = useNavigate();
 
     const [form, setForm] = useState({
@@ -28,7 +32,6 @@ export default function LoginPage() {
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
-
         setForm({
             ...form,
             [e.target.name]: e.target.value,
@@ -38,43 +41,39 @@ export default function LoginPage() {
     const handleSubmit = async (
         e: React.FormEvent
     ) => {
-
         e.preventDefault();
 
         try {
-
             setLoading(true);
+            setError("");
 
             await login(form);
 
-            navigate("/dashboard");
-
-        } catch (err: any) {
-
-            setError(
-                err.response?.data?.detail ||
-                "Ошибка входа"
+            navigate(
+                getHomePathByRole(getCurrentUserRole())
             );
-
+        } catch (err) {
+            setError(
+                getApiErrorMessage(
+                    err,
+                    "Ошибка входа"
+                )
+            );
         } finally {
-
             setLoading(false);
         }
     };
 
     return (
         <AuthLayout>
-
             <AuthCard
                 title="Вход"
                 subtitle="Войдите в систему"
             >
-
                 <form
                     onSubmit={handleSubmit}
                     className="space-y-5"
                 >
-
                     <AuthInput
                         type="email"
                         placeholder="Email"
@@ -121,11 +120,7 @@ export default function LoginPage() {
                             disabled:opacity-50
                         "
                     >
-                        {
-                            loading
-                                ? "Вход..."
-                                : "Войти"
-                        }
+                        {loading ? "Вход..." : "Войти"}
                     </button>
 
                     <p
@@ -146,13 +141,9 @@ export default function LoginPage() {
                         >
                             Регистрация
                         </Link>
-
                     </p>
-
                 </form>
-
             </AuthCard>
-
         </AuthLayout>
     );
 }

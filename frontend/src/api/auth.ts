@@ -9,7 +9,6 @@ import {
 export async function login(
     data: LoginRequest
 ): Promise<AuthResponse> {
-
     const response = await api.post(
         "/auth/login",
         data
@@ -26,29 +25,37 @@ export async function login(
 export async function register(
     data: RegisterRequest
 ) {
-
-    // CREATE USER
     const userResponse = await api.post(
         "/users/",
         {
             email: data.email,
             password: data.password,
-            role: "patient",
+            role: data.role,
         }
     );
-    console.log("post до user", userResponse)
-    // CREATE PATIENT
-    await api.post(
-        "/patients",
-        {
-            full_name: data.full_name,
-            birth_date: data.birth_date,
-            phone: data.phone,
-            user_id: userResponse.data.id,
-        }
-    );
-    console.log("пост к пациентам")
-    // LOGIN
+
+    if (data.role === "doctor") {
+        await api.post(
+            "/doctors/",
+            {
+                full_name: data.full_name.trim(),
+                specialization: data.specialization?.trim(),
+                cabinet: data.cabinet?.trim(),
+                user_id: userResponse.data.id,
+            }
+        );
+    } else {
+        await api.post(
+            "/patients/",
+            {
+                full_name: data.full_name.trim(),
+                birth_date: data.birth_date,
+                phone: data.phone?.trim(),
+                user_id: userResponse.data.id,
+            }
+        );
+    }
+
     return await login({
         email: data.email,
         password: data.password,
