@@ -14,14 +14,18 @@ class AppointmentRepository:
 
     async def get_slots(self, doctor_id: int, date: Optional[date] = None):
         if date is None:
-            slots = await self.db.execute(select(Appointment).where(
+            stmt = select(Appointment).where(
                 Appointment.doctor_id == doctor_id
-            ))
-        else:
-            slots = await self.db.execute(select(Appointment).where(
-                Appointment.doctor_id == doctor_id,
-                cast(Appointment.appointment_time, Date) == date)
             )
+        else:
+            stmt = select(Appointment).where(
+                Appointment.doctor_id == doctor_id,
+                cast(Appointment.appointment_time, Date) == date
+            )
+
+        slots = await self.db.execute(
+            stmt.order_by(Appointment.appointment_time)
+        )
         slots = slots.scalars().all()
         logger.info(slots)
         return slots
@@ -45,6 +49,14 @@ class AppointmentRepository:
 
     async def get_all(self):
         result = await self.db.execute(select(Appointment))
+        return result.scalars().all()
+
+    async def get_by_patient_id(self, patient_id: int):
+        result = await self.db.execute(
+            select(Appointment)
+            .where(Appointment.patient_id == patient_id)
+            .order_by(Appointment.appointment_time.desc())
+        )
         return result.scalars().all()
 
     async def delete(self, appointment: Appointment):

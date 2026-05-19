@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...schemas import DoctorCreate, DoctorRead
 from ...services import DoctorService
 from ..deps import get_doctor_service
+from ..deps.auth import get_current_patient
 
 router = APIRouter(prefix="/doctors", tags=["Doctors"])
 
@@ -30,6 +31,7 @@ async def get_doctor(
 @router.get("/", response_model=List[DoctorRead])
 async def get_doctors(
     specialization: str | None = None,
+    patient=Depends(get_current_patient),
     service: DoctorService = Depends(get_doctor_service)
 ):
     return await service.get_all(specialization)

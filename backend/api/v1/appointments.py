@@ -3,11 +3,10 @@ import datetime
 from fastapi import APIRouter, Depends
 from typing import List, Optional
 
-from ..deps.auth import get_current_doctor
+from ..deps.auth import get_current_doctor, get_current_patient
 from ...schemas import (
     AppointmentRead,
-    AppointmentCreate,
-    AppointmentSlotsData
+    AppointmentCreate
 )
 from ...services import AppointmentService
 from ..deps import get_appointment_service
@@ -24,6 +23,33 @@ async def create_appointment(
     return await service.create(data)
 
 
+@router.get("/by_doctor_id/{doctor_id}", response_model=List[AppointmentRead])
+async def get_appointments_by_doctor_id(
+    doctor_id: int,
+    date: Optional[datetime.date] = None,
+    patient=Depends(get_current_patient),
+    service: AppointmentService = Depends(get_appointment_service)
+):
+    return await service.get_slots_by_doctor_id(doctor_id, date)
+
+
+@router.get("/my", response_model=List[AppointmentRead])
+async def get_my_appointments(
+    date: Optional[datetime.date] = None,
+    doctor=Depends(get_current_doctor),
+    service: AppointmentService = Depends(get_appointment_service)
+):
+    return await service.get_slots_by_doctor_id(doctor.id, date)
+
+
+@router.get("/my-patient", response_model=List[AppointmentRead])
+async def get_my_patient_appointments(
+    patient=Depends(get_current_patient),
+    service: AppointmentService = Depends(get_appointment_service)
+):
+    return await service.get_by_patient_id(patient.id)
+
+
 @router.get("/{appointment_id}", response_model=AppointmentRead)
 async def get_appointment(
     appointment_id: int,
@@ -31,15 +57,8 @@ async def get_appointment(
 ):
     return await service.get(appointment_id)
 
-@router.get("/by_doctor_id/{doctor_id}", response_model=List[AppointmentRead])
-async def get_appointments_by_doctor_id(
-    doctor_id: int,
-    date: Optional[datetime.date] = None,
-    service: AppointmentService = Depends(get_appointment_service)
-):
-    return await service.get_slots_by_doctor_id(doctor_id, date)
 
-@router.post("/create_slots", response_model=List[AppointmentSlotsData])
+@router.post("/create_slots", response_model=List[AppointmentRead])
 async def create_slots(
     data: datetime.date,
     doctor=Depends(get_current_doctor),
@@ -66,14 +85,15 @@ async def delete_appointment(
 async def update_status(
     appointment_id: int,
     status: AppointmentStatus,
+    doctor=Depends(get_current_doctor),
     service: AppointmentService = Depends(get_appointment_service)
 ):
-    return await service.update_status(appointment_id, status)
+    return await service.update_status(appointment_id, status, doctor.id)
 
 @router.patch("/take_slot/{appointment_id}", response_model=AppointmentRead)
 async def take_slot(
     appointment_id: int,
-    patient_id: int,
+    patient=Depends(get_current_patient),
     service: AppointmentService = Depends(get_appointment_service)
 ):
-    return await service.take_slot(appointment_id, patient_id)
+    return await service.take_slot(appointment_id, patient.id)

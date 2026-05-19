@@ -3,9 +3,11 @@ from fastapi.security import OAuth2PasswordBearer
 
 from jose import JWTError, jwt
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.config import settings
 from ...storage.postgres import User, Doctor, Patient
+from .deps import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/auth/login"
@@ -38,7 +40,8 @@ async def get_current_user(
 
 
 async def get_current_doctor(
-    user=Depends(get_current_user)
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     if user["role"] != "doctor":
         raise HTTPException(
@@ -46,11 +49,22 @@ async def get_current_doctor(
             detail="Doctor only"
         )
 
-    doctor = select(Doctor).where(Doctor.user_id == user["id"])
+    result = await db.execute(
+        select(Doctor).where(Doctor.user_id == int(user["sub"]))
+    )
+    doctor = result.scalar_one_or_none()
+
+    if not doctor:
+        raise HTTPException(
+            status_code=404,
+            detail="Doctor profile not found"
+        )
+
     return doctor
 
 async def get_current_patient(
-    user=Depends(get_current_user)
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     if user["role"] != "patient":
         raise HTTPException(
@@ -58,7 +72,17 @@ async def get_current_patient(
             detail="Patient only"
         )
 
-    patient = select(Patient).where(Patient.user_id == user["id"])
+    result = await db.execute(
+        select(Patient).where(Patient.user_id == int(user["sub"]))
+    )
+    patient = result.scalar_one_or_none()
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient profile not found"
+        )
+
     return patient
 
 

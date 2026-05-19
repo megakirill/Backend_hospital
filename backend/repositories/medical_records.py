@@ -11,6 +11,13 @@ class MedicalRecordRepository:
     async def create(self, record: MedicalRecord):
         self.db.add(record)
         await self.db.flush()
+        await self.db.commit()
+        return record
+
+    async def update(self, record: MedicalRecord):
+        self.db.add(record)
+        await self.db.commit()
+        await self.db.refresh(record)
         return record
 
     async def get_by_id(self, record_id: int):

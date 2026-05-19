@@ -69,6 +69,9 @@ class AppointmentService:
     async def get_all(self):
         return await self.repo.get_all()
 
+    async def get_by_patient_id(self, patient_id: int):
+        return await self.repo.get_by_patient_id(patient_id)
+
     async def delete(self, appointment_id: int):
         appointment = await self.repo.get_by_id(appointment_id)
 
@@ -79,11 +82,20 @@ class AppointmentService:
 
         return {"status": "deleted"}
 
-    async def update_status(self, appointment_id: int, status: AppointmentStatus):
+    async def update_status(
+        self,
+        appointment_id: int,
+        status: AppointmentStatus,
+        doctor_id: int | None = None
+    ):
         appointment = await self.repo.get_by_id(appointment_id)
 
         if not appointment:
             raise HTTPException(404, "Appointment not found")
+
+        if doctor_id is not None and appointment.doctor_id != doctor_id:
+            raise HTTPException(403, "Appointment belongs to another doctor")
+
         if appointment.status == AppointmentStatus.FREE:
             raise HTTPException(400, "На данный сеанс пока никто не зарегистрирован")
         status = AppointmentStatus(status)
@@ -98,6 +110,8 @@ class AppointmentService:
         appointment = await self.repo.get_by_id(appointment_id)
         if not(appointment):
             raise HTTPException(404, "Appointment not found")
+        if appointment.status != AppointmentStatus.FREE:
+            raise HTTPException(400, "Appointment is not available")
         patient = await self.patient_repo.get_by_id(patient_id)
         if not patient:
             raise HTTPException(404, "Patient not found")
